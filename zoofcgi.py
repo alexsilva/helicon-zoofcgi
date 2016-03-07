@@ -40,7 +40,6 @@ import datetime
 import urllib
 from optparse import OptionParser
 
-
 # debug flag
 __dbg__ = False
 
@@ -98,6 +97,7 @@ FCGI_HEADER_NAMES = (
     'UNKNOWN_TYPE',
 )
 
+
 class InputStream(object):
     """
     File-like object representing FastCGI input streams (FCGI_STDIN and
@@ -112,10 +112,10 @@ class InputStream(object):
 
         self._buf = ''
         self._bufList = []
-        self._pos = 0 # Current read position.
-        self._avail = 0 # Number of bytes currently available.
+        self._pos = 0  # Current read position.
+        self._avail = 0  # Number of bytes currently available.
 
-        self._eof = False # True when server has sent EOF notification.
+        self._eof = False  # True when server has sent EOF notification.
 
     def _shrinkBuffer(self):
         """Gets rid of already read data (since we can't rewind)."""
@@ -147,7 +147,7 @@ class InputStream(object):
             else:
                 newPos = self._pos + n
                 break
-            # Merge buffer list, if necessary.
+                # Merge buffer list, if necessary.
         if self._bufList:
             self._buf += ''.join(self._bufList)
             self._bufList = []
@@ -228,7 +228,7 @@ class OutputStream(object):
         self._req = req
         self._type = type
         self._buffered = buffered
-        self._bufList = [] # Used if buffered is True
+        self._bufList = []  # Used if buffered is True
         self.dataWritten = False
         self.closed = False
 
@@ -389,7 +389,6 @@ class Record(object):
         self.paddingLength = 0
         self.contentData = ''
 
-
     def _recvall(stream, length):
         """
         Attempts to receive length bytes from a socket, blocking if necessary.
@@ -403,26 +402,25 @@ class Record(object):
 
         while length:
             data = stream.read(length)
-            if not data: # EOF
+            if not data:  # EOF
                 break
             dataList.append(data)
             dataLen = len(data)
             recvLen += dataLen
             length -= dataLen
 
-        #if __dbg__: logging.debug('recived length = %d' % (recvLen))
+        # if __dbg__: logging.debug('recived length = %d' % (recvLen))
 
         return ''.join(dataList), recvLen
 
     _recvall = staticmethod(_recvall)
-
 
     def read(self, stream):
         """Read and decode a Record from a socket."""
         try:
             header, length = self._recvall(stream, FCGI_HEADER_LEN)
         except:
-            raise 
+            raise
 
         if length < FCGI_HEADER_LEN:
             raise EOFError
@@ -432,11 +430,14 @@ class Record(object):
             for s in header:
                 hx += '%x|' % (ord(s))
 
-        self.version, self.type, self.requestId, self.contentLength,\
+        self.version, self.type, self.requestId, self.contentLength, \
         self.paddingLength = struct.unpack(FCGI_Header, header)
 
         if __dbg__:
-            logging.debug('recv fcgi header: %s %s len: %d' % (FCGI_HEADER_NAMES[self.type] if self.type is not None and self.type < FCGI_MAXTYPE else FCGI_HEADER_NAMES[FCGI_MAXTYPE], hx, len(header)))
+            logging.debug('recv fcgi header: %s %s len: %d' % (
+                FCGI_HEADER_NAMES[self.type] if self.type is not None and self.type < FCGI_MAXTYPE else
+                FCGI_HEADER_NAMES[
+                    FCGI_MAXTYPE], hx, len(header)))
 
         if self.contentLength:
             try:
@@ -462,7 +463,6 @@ class Record(object):
 
     _sendall = staticmethod(_sendall)
 
-
     def write(self, stream):
         """Encode and write a Record to a socket."""
         if not self.contentLength:
@@ -474,8 +474,9 @@ class Record(object):
                              self.requestId, self.contentLength,
                              self.paddingLength)
 
-        if __dbg__: logging.debug('send fcgi header: %s' % FCGI_HEADER_NAMES[self.type] if self.type is not None and self.type < FCGI_MAXTYPE else FCGI_HEADER_NAMES[FCGI_MAXTYPE])
-        
+        if __dbg__: logging.debug('send fcgi header: %s' % FCGI_HEADER_NAMES[
+            self.type] if self.type is not None and self.type < FCGI_MAXTYPE else FCGI_HEADER_NAMES[FCGI_MAXTYPE])
+
         self._sendall(stream, header)
 
         if self.contentLength:
@@ -484,7 +485,6 @@ class Record(object):
         if self.paddingLength:
             if __dbg__: logging.debug('send PADDING')
             self._sendall(stream, '\x00' * self.paddingLength)
-
 
 
 class Request(object):
@@ -507,32 +507,29 @@ class Request(object):
         self.stderr = OutputStream(conn, self, FCGI_STDERR)
         self.data = inputStreamClass(conn)
 
-
     def run(self):
         """Runs the handler, flushes the streams, and ends the request."""
 
         try:
             protocolStatus, appStatus = self.server.handler(self)
         except Exception, instance:
-            if __dbg__: 
+            if __dbg__:
                 logging.error(traceback.format_exc())
             raise
             # TODO: fix it
-            #self.stderr.flush()
-            #if not self.stdout.dataWritten:
+            # self.stderr.flush()
+            # if not self.stdout.dataWritten:
             #    self.server.error(self)
-            #protocolStatus, appStatus = FCGI_REQUEST_COMPLETE, 0
+            # protocolStatus, appStatus = FCGI_REQUEST_COMPLETE, 0
 
         if __dbg__:
             logging.debug('protocolStatus = %d, appStatus = %d' % (protocolStatus, appStatus))
-        
+
         self._flush()
         self._end(appStatus, protocolStatus)
 
-
     def _end(self, appStatus=0L, protocolStatus=FCGI_REQUEST_COMPLETE):
         self._conn.end_request(self, appStatus, protocolStatus)
-
 
     def _flush(self):
         self.stdout.flush()
@@ -559,7 +556,6 @@ class Connection(object):
         # Active Requests for this Connection, mapped by request ID.
         self._requests = {}
 
-
     def run(self):
         """Begin processing data from the socket."""
 
@@ -569,11 +565,10 @@ class Connection(object):
                 self.process_input()
             except KeyboardInterrupt:
                 break
-            #except EOFError, inst:
-            #    raise
-            #    if __dbg__: logging.error(str(inst))
-            #    break
-
+                # except EOFError, inst:
+                #    raise
+                #    if __dbg__: logging.error(str(inst))
+                #    break
 
     def process_input(self):
         """Attempt to read a single Record from the socket and process it."""
@@ -606,13 +601,11 @@ class Connection(object):
             # Need to complain about this.
             pass
 
-
     def writeRecord(self, rec):
         """
         Write a Record to the socket.
         """
         rec.write(self._stdout)
-
 
     def end_request(self, req, appStatus=0L, protocolStatus=FCGI_REQUEST_COMPLETE, remove=True):
         """
@@ -647,7 +640,6 @@ class Connection(object):
             if __dbg__: logging.debug('end_request: set _keepGoing = False')
             self._keepGoing = False
 
-
     def _do_get_values(self, inrec):
         """Handle an FCGI_GET_VALUES request from the web server."""
 
@@ -663,7 +655,6 @@ class Connection(object):
         outrec.contentLength = len(outrec.contentData)
         self.writeRecord(outrec)
 
-
     def _do_begin_request(self, inrec):
         """Handle an FCGI_BEGIN_REQUEST from the web server."""
         role, flags = struct.unpack(FCGI_BeginRequestBody, inrec.contentData)
@@ -678,7 +669,6 @@ class Connection(object):
         else:
             self._requests[inrec.requestId] = req
 
-
     def _do_abort_request(self, inrec):
         """
         Handle an FCGI_ABORT_REQUEST from the web server.
@@ -690,12 +680,10 @@ class Connection(object):
             req.aborted = True
             self.end_request(req, FCGI_REQUEST_COMPLETE, 0)
 
-
     def _start_request(self, req):
         """Run the request."""
         # Not multiplexed, so run it inline.
         req.run()
-
 
     def _do_params(self, inrec):
         """
@@ -712,7 +700,6 @@ class Connection(object):
                     pos, (name, value) = decode_pair(inrec.contentData, pos)
                     req.params[name] = value
 
-
     def _do_stdin(self, inrec):
         """Handle the FCGI_STDIN stream."""
         req = self._requests.get(inrec.requestId)
@@ -723,13 +710,11 @@ class Connection(object):
         else:
             self._start_request(req)
 
-
     def _do_data(self, inrec):
         """Handle the FCGI_DATA stream."""
         req = self._requests.get(inrec.requestId)
         if req is not None:
             req.data.add_data(inrec.contentData)
-
 
     def _do_unknown_type(self, inrec):
         """Handle an unknown request type. Respond accordingly."""
@@ -766,7 +751,6 @@ class FCGIServer(object):
         }
         self.app_root = app_root
 
-
     def run(self):
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
         stdin = sys.stdin
@@ -774,7 +758,6 @@ class FCGIServer(object):
 
         conn = Connection(stdin, stdout, self)
         conn.run()
-
 
     def handler(self, req):
         """Special handler for WSGI."""
@@ -838,7 +821,7 @@ class FCGIServer(object):
                         # Re-raise if too late
                         raise exc_info[0], exc_info[1], exc_info[2]
                 finally:
-                    exc_info = None # avoid dangling circular ref
+                    exc_info = None  # avoid dangling circular ref
             else:
                 assert not headers_set, 'Headers already set!'
 
@@ -865,12 +848,12 @@ class FCGIServer(object):
                         if data:
                             write(data)
                     if not headers_sent:
-                        write('') # in case body was empty
+                        write('')  # in case body was empty
                 finally:
-                    #if hasattr(result, 'close'):
+                    # if hasattr(result, 'close'):
                     #    result.close()
                     pass
-            #except socket.error, e:
+            # except socket.error, e:
             #    if e[0] != errno.EPIPE:
             #        raise # Don't let EPIPE propagate beyond server
             except:
@@ -880,10 +863,9 @@ class FCGIServer(object):
 
         return FCGI_REQUEST_COMPLETE, 0
 
-
     def _sanitizeEnv(self, environ):
         """Ensure certain values are present, if required by WSGI."""
-        
+
         if __dbg__:
             logging.debug('raw envs: {0}'.format(environ))
 
@@ -898,7 +880,7 @@ class FCGIServer(object):
                 environ['PATH_INFO'] = reqUri[0]
             else:
                 environ['PATH_INFO'] = ''
-        
+
         # convert %XX to python unicode
         environ['PATH_INFO'] = urllib.unquote(environ['PATH_INFO'])
 
@@ -923,7 +905,6 @@ class FCGIServer(object):
                                              'required by WSGI!\n' %
                                              (self.__class__.__name__, name))
                 environ[name] = default
-
 
     def error(self, req):
         """
@@ -958,7 +939,7 @@ def example_application(environ, start_response):
     env_keys.sort()
     for e in env_keys:
         data += '%s: %s\n' % (e, environ[e])
-    data += 'sys.version: '+sys.version+'\n'
+    data += 'sys.version: ' + sys.version + '\n'
     start_response('200 OK', [('Content-Type', 'text/plain'), ('Content-Length', str(len(data)))])
     yield data
 
@@ -988,7 +969,7 @@ def run_django_app(django_settings_module, django_root):
         # get python path to settings
         settings_module = '%s.%s' % (os.path.basename(app_path), app_settings)
     else:
-        #consider that django_settings_module is valid python path
+        # consider that django_settings_module is valid python path
         settings_module = django_settings_module
 
     os.environ['DJANGO_SETTINGS_MODULE'] = settings_module
@@ -998,7 +979,8 @@ def run_django_app(django_settings_module, django_root):
         from django.core.handlers.wsgi import WSGIHandler
         FCGIServer(WSGIHandler(), app_root=django_root).run()
     except ImportError:
-        if __dbg__: logging.error('Could not import django.core.handlers.wsgi module. Check that django is installed and in PYTHONPATH.')
+        if __dbg__: logging.error(
+            'Could not import django.core.handlers.wsgi module. Check that django is installed and in PYTHONPATH.')
         raise
 
 
@@ -1016,7 +998,7 @@ def run_wsgi_app(wsgi_app_path):
 def import_function(func_path):
     parts = func_path.split('.')
     module = ".".join(parts[:-1])
-    m = __import__( module )
+    m = __import__(module)
     for comp in parts[1:]:
         m = getattr(m, comp)
     return m
@@ -1046,11 +1028,11 @@ if __name__ == '__main__':
 
     __dbg__ = options.debug
 
-
     # compile self
     compiled = os.path.split(__file__)[-1].replace('.py', '.pyc' if __dbg__ else '.pyo')
     if not os.path.exists(compiled):
         import py_compile
+
         try:
             py_compile.compile(__file__)
         except:
@@ -1059,7 +1041,8 @@ if __name__ == '__main__':
     # enable logging
     if __dbg__:
         logging.basicConfig(
-            filename=os.path.join(os.path.dirname(__file__), '_zoofcgi_%s_%d.log' %(datetime.datetime.now().strftime('%y%m%d_%H%M%S'), os.getpid())),
+            filename=os.path.join(os.path.dirname(__file__), '_zoofcgi_%s_%d.log' % (
+                datetime.datetime.now().strftime('%y%m%d_%H%M%S'), os.getpid())),
             filemode='w',
             format='%(asctime)s [%(levelname)-5s] %(message)s',
             level=logging.DEBUG)
