@@ -887,6 +887,7 @@ class FCGIServer(object):
         # process app_root
         if self.app_root and environ['PATH_INFO'].startswith(self.app_root):
             environ['PATH_INFO'] = environ['PATH_INFO'][len(self.app_root):]
+            environ['SCRIPT_NAME'] = self.app_root
 
         if not environ.has_key('QUERY_STRING') or not environ['QUERY_STRING']:
             if reqUri is not None and len(reqUri) > 1:
@@ -984,7 +985,7 @@ def run_django_app(django_settings_module, django_root):
         raise
 
 
-def run_wsgi_app(wsgi_app_path):
+def run_wsgi_app(wsgi_app_path, django_root):
     try:
         wsgi_app = import_function(wsgi_app_path)
     except:
@@ -992,7 +993,7 @@ def run_wsgi_app(wsgi_app_path):
             logging.error('Could not import WSGI APP: {0}'.format(wsgi_app_path))
         raise
 
-    FCGIServer(wsgi_app).run()
+    FCGIServer(wsgi_app, app_root=django_root).run()
 
 
 def import_function(func_path):
@@ -1052,7 +1053,7 @@ if __name__ == '__main__':
         run_django_app(options.django_settings_module, options.django_root)
     elif options.wsgi_app:
         # run general WSGI app by WSGI_APP
-        run_wsgi_app(options.wsgi_app)
+        run_wsgi_app(options.wsgi_app, options.django_root)
     else:
         # run example app
         run_example_app()
