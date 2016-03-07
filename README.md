@@ -8,3 +8,6 @@ Configuration:
 `WSGI_APP` - Variable that defines the module wsgi (app.wsgi).
 
 Configure the wsgi prefix in the variable `django.root` with the value `%APPL_VIRTUAL_PATH%`
+
+Once installed the new module, you need to change the 
+engine wsgi the interpreter argument for `-m zoofcgi`
