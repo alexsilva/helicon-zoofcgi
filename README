@@ -1,0 +1,2 @@
+Fcgi module with corrections that allow run a django project,
+when he is within an application on IIS server (Windows).
